@@ -1,0 +1,72 @@
+#!/bin/sh
+#version 1.0
+tr=$1 
+
+
+#functions
+ SQL (){
+while read SQLINJ
+do nmap -sV --script=http-sql-injection $SQLINJ -Pn -p 80 >> vulnable
+	echo "Checking $SQLINJ"
+done < $tr
+echo "done\n" >> vulnable
+return 0
+}
+
+ XSS (){
+while read SITEXSS
+do nmap --script http-unsafe-output-escaping $SITEXSS -p 80 >> vulnable
+	echo "Checking $SITEXSS"
+done < $tr
+echo "done\n" >> vulnable
+return 0
+}
+
+ PHPXSS (){
+while read SPHPXSS
+do nmap --script http-phpself-xss,http-unsafe-output-escaping PHPXSS -p 80 >> vulnable
+	echo "Checking $SPHPXSS"
+done < $tr
+echo "done\n" >> vulnable
+return 0
+}
+
+ SMB (){
+while read IPSMB
+do nmap --script smb-check-vulns.nse $IPSMB -p 445 >> vulnable
+	echo "Checking $IPSMB"
+done < $tr
+echo "done\n" >> vulnable
+return 0
+}
+#
+
+if [ -f "$1" ]
+	then
+		cycle=$(wc -l < $1)
+echo $cycle
+
+if [ -n vulnable ] 
+	then
+       		echo "Main file found"; else touch vulnable
+fi
+
+if [ "$2 != 0" ] 
+then
+sed -i 's,^.*://,,;s,/.*$,,' $1
+
+case $2 in 
+	1) echo "SQL INJECTION CHECKER" >> vulnable
+	SQL;;
+	2) echo "XSS INJECTION CHECKER" >> vulnable
+	XSS;;
+	3) echo "PHP BASED XSS INJECTION CHECKER" >> vulnable
+	PHPXSS;;
+	4) echo "SMB CHECKER" >> vulnable
+	SMB;;
+esac	
+
+else echo "print second parameter"
+fi
+fi
+	
